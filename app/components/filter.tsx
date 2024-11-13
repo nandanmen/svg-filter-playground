@@ -17,7 +17,7 @@ export function Filter({ filter }: { filter: any }) {
   return (
     <li className="border rounded-[20px] border-gray4 text-sm overflow-hidden divide-y divide-gray4">
       <button
-        className={`h-10 pr-2.5 pl-1 flex items-center w-full ${isClickable ? "hover:bg-gray3" : "cursor-default"}`}
+        className={`h-10 pr-2.5 pl-1 flex items-center w-full ${isClickable ? "hover:bg-gray3 group" : "cursor-default"}`}
         onClick={() => isClickable && setOpen(!open)}
       >
         <div className="h-full p-1">
