@@ -101,8 +101,8 @@ export function Playground() {
     const linksEndingAtEnd = links.filter(([_, e]) => e === end);
     const currentIndex = linksEndingAtEnd.findIndex((l) => l === link);
 
-    const endX = (388 / (linksEndingAtEnd.length + 1)) * (currentIndex + 1);
-    const startX = start === -2 ? 85 : start === -1 ? 303 : 194;
+    const endX = (348 / (linksEndingAtEnd.length + 1)) * (currentIndex + 1);
+    const startX = start === -2 ? 85 : start === -1 ? 263 : 174;
 
     return {
       link,
@@ -114,7 +114,7 @@ export function Playground() {
   });
 
   return (
-    <div className="h-screen w-full grid grid-cols-[420px_1fr_420px] divide-x divide-gray4">
+    <div className="h-screen w-full grid grid-cols-[380px_1fr_420px] divide-x divide-gray4">
       <aside className="flex flex-col divide-y divide-gray4 bg-gray2">
         <header className="p-4 flex justify-between items-center">
           <h1 className="font-medium">SVG Filter Playground</h1>
@@ -265,7 +265,7 @@ export function Playground() {
 
 function SvgWrapper({ children }: { children: ReactNode }) {
   return (
-    <div className="w-[650px] aspect-square border border-gray4 bg-gray1 relative">
+    <div className="w-[500px] aspect-square border border-gray4 bg-gray1 relative">
       <div className="text-gray7">
         <div className="absolute -top-2 -right-2">
           <Corner />
