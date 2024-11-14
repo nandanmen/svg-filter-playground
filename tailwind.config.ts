@@ -1,4 +1,4 @@
-import { gray, grayDark } from "@radix-ui/colors";
+import { blue, gray, grayDark, green } from "@radix-ui/colors";
 import type { Config } from "tailwindcss";
 
 const config: Config = {
@@ -11,10 +11,11 @@ const config: Config = {
     extend: {
       colors: {
         ...gray,
+        ...blue,
+        ...green,
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)"],
-        mono: ["var(--font-geist-mono)"],
       },
     },
   },

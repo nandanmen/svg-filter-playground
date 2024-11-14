@@ -69,7 +69,9 @@ export function Editor({
             },
           }),
           basicSetup,
-          html(),
+          html({
+            selfClosingTags: true,
+          }),
           autocomplete,
           theme,
           interact({

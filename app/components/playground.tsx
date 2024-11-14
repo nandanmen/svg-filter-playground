@@ -1,11 +1,10 @@
 "use client";
 
-import { type ReactNode, useCallback, useState } from "react";
-import { find } from "unist-util-find";
-import { Root } from "hast";
+import { Fragment, type ReactNode, useCallback, useState } from "react";
 import { Filter } from "./filter";
-import { Editor, parseTree } from "./editor";
+import { Editor, Node, parseTree } from "./editor";
 import { EditorState } from "@codemirror/state";
+import { QuestionMark } from "./icons";
 
 const range = (
   to: number,
@@ -33,15 +32,55 @@ const initialFilters = `<filter id="filter">
     in="SourceGraphic"
     stdDeviation="2"
     result="blur"
-  ></feGaussianBlur>
+  />
   <feColorMatrix
     in="blur"
     type="matrix"
     values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7"
     result="goo"
-  ></feColorMatrix>
-  <feBlend in="SourceGraphic" in2="goo"></feBlend>
+  />
+  <feBlend in="SourceGraphic" in2="goo" />
 </filter>`;
+
+function findLinks(filters: Pick<Node, "properties">[]): [number, number][] {
+  /**
+   * A record of ids to the indexes of the filters that reference them.
+   */
+  const mapIdToLinks: Record<string, number[]> = {};
+
+  const mapIdToIndex: Record<string, number> = {
+    // special ids
+    SourceGraphic: -2,
+    SourceAlpha: -1,
+  };
+
+  filters.forEach((filter, index) => {
+    const { in: inProp, in2, result } = filter.properties;
+    if (result) {
+      mapIdToIndex[result] = index;
+    }
+    if (inProp) {
+      mapIdToLinks[inProp] = [...(mapIdToLinks[inProp] || []), index];
+    }
+    if (in2) {
+      mapIdToLinks[in2] = [...(mapIdToLinks[in2] || []), index];
+    }
+  });
+
+  const links: [number, number][] = [];
+  Object.entries(mapIdToLinks).forEach(([id, indexes]) => {
+    /**
+     * If the map doesn't have an entry for the id, it's not a valid id. We
+     * don't want to throw here because the user might be typing, so we use a
+     * special value - "-3" in this case.
+     */
+    const key = mapIdToIndex[id] ?? -3;
+    indexes.forEach((index) => {
+      links.push([key, index]);
+    });
+  });
+  return links;
+}
 
 export function Playground() {
   const [filterView, setFilterView] = useState<EditorState | null>(null);
@@ -49,15 +88,38 @@ export function Playground() {
     return {
       type: child.tagName,
       properties: child.properties,
+      positions: child.positions,
     };
   });
+
+  const links = findLinks(filters);
+  const linksWithCoordinates = links.map((link) => {
+    const [start, end] = link;
+    const startY = (Math.max(start, -1) + 1) * 82 + 40;
+    const endY = (end + 1) * 82;
+
+    const linksEndingAtEnd = links.filter(([_, e]) => e === end);
+    const currentIndex = linksEndingAtEnd.findIndex((l) => l === link);
+
+    const endX = (388 / (linksEndingAtEnd.length + 1)) * (currentIndex + 1);
+    const startX = start === -2 ? 85 : start === -1 ? 303 : 194;
+
+    return {
+      link,
+      x0: startX,
+      y0: startY,
+      x1: endX,
+      y1: endY,
+    };
+  });
+
   return (
-    <div className="h-screen w-full grid grid-cols-4 divide-x divide-gray4">
-      <aside className="flex flex-col divide-y divide-gray4">
+    <div className="h-screen w-full grid grid-cols-[420px_1fr_420px] divide-x divide-gray4">
+      <aside className="flex flex-col divide-y divide-gray4 bg-gray2">
         <header className="p-4 flex justify-between items-center">
           <h1 className="font-medium">SVG Filter Playground</h1>
           <a
-            className="flex items-center gap-1 py-1.5 rounded px-2 bg-gray3 border border-gray4"
+            className="flex items-center gap-1 py-1.5 rounded-xl px-2 bg-gray1 border border-gray4"
             href="https://svg-animations.how"
             target="_blank"
             rel="noreferrer"
@@ -78,60 +140,74 @@ export function Playground() {
             </svg>
           </a>
         </header>
-        <ul className="p-4 space-y-4">
-          <li className="flex gap-2 text-sm font-medium">
-            <button className="border h-10 pl-4 pr-2.5 gap-2 flex items-center rounded-full justify-between w-full">
+        <ul className="p-4 flex flex-col gap-10 relative h-full">
+          <div className="absolute inset-0 p-4 pointer-events-none">
+            <svg width="100%" height="100%">
+              <g className="text-green9">
+                {linksWithCoordinates.map((link) => {
+                  if (link.x0 === link.x1) {
+                    return (
+                      <path
+                        key={`${link.x0}-${link.y0}-${link.y1}`}
+                        d={`M ${link.x0} ${link.y0} V ${link.y1}`}
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        fill="none"
+                      />
+                    );
+                  }
+                  return (
+                    <path
+                      key={`${link.x0}-${link.y0}-${link.y1}`}
+                      d={`M ${link.x0} ${link.y0} V ${link.y1 - 26} a 6 6 0 0 0 6 6 H ${link.x1 - 6} a 6 6 0 0 1 6 6 V ${link.y1}`}
+                      stroke="currentColor"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      fill="none"
+                    />
+                  );
+                })}
+              </g>
+            </svg>
+          </div>
+          <li className="flex gap-2 text-sm font-medium relative">
+            <button className="bg-gray1 border h-10 pl-4 pr-2.5 gap-2 flex items-center rounded-xl justify-between w-full shadow-sm">
               <span>SourceGraphic</span>
-              <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
-                <path
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 13V15"
-                />
-                <circle cx="12" cy="9" r="1" fill="currentColor" />
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="7.25"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.5"
-                />
-              </svg>
+              <span className="text-gray11">
+                <QuestionMark />
+              </span>
             </button>
-            <button className="border h-10 pl-4 pr-2.5 gap-2 flex items-center rounded-full w-full justify-between">
+            <button className="bg-gray1 border h-10 pl-4 pr-2.5 gap-2 flex items-center rounded-xl w-full justify-between shadow-sm">
               <span>SourceAlpha</span>
-              <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
-                <path
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 13V15"
-                />
-                <circle cx="12" cy="9" r="1" fill="currentColor" />
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="7.25"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.5"
-                />
-              </svg>
+              <span className="text-gray11">
+                <QuestionMark />
+              </span>
             </button>
           </li>
           {filters.map((filter) => {
-            return <Filter filter={filter} key={filter.type} />;
+            return <Filter key={filter.type} filter={filter} />;
           })}
+          <div className="absolute inset-0 p-4 pointer-events-none">
+            <svg width="100%" height="100%">
+              <g className="text-green9">
+                {linksWithCoordinates.map((link) => {
+                  return (
+                    <g
+                      key={`${link.x0}-${link.y0}-${link.x1}-${link.y1}`}
+                      fill="currentColor"
+                    >
+                      <circle cx={link.x0} cy={link.y0} r="3" />
+                      <circle cx={link.x1} cy={link.y1} r="3" />
+                    </g>
+                  );
+                })}
+              </g>
+            </svg>
+          </div>
         </ul>
       </aside>
       <main
-        className="w-full flex items-center justify-center col-span-2"
+        className="w-full flex items-center justify-center"
         style={{ backgroundImage: `url(/pattern.svg)` }}
       >
         <SvgWrapper>
