@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { BlendIcon, BlurIcon, ColorMatrixIcon, QuestionMark } from "./icons";
+import Link from "next/link";
 
 const mapFilterTypeToDescription: Record<
   string,
@@ -29,14 +30,17 @@ export function Filter({ filter }: { filter: any }) {
   const current = mapFilterTypeToDescription[filter.type];
   return (
     <li className="bg-gray1 border rounded-xl border-gray4 text-sm overflow-hidden divide-y divide-gray4 relative shadow-sm">
-      <button className={`h-10 px-2.5 flex items-center w-full gap-2`}>
+      <Link
+        href={`/filters/${filter.type}`}
+        className={`h-10 px-2.5 flex items-center w-full gap-2`}
+      >
         {current?.icon}
         <span className="font-medium">{filter.type}</span>
         <span className="text-gray11">{current?.description}</span>
         <span className="ml-auto text-gray11">
           <QuestionMark />
         </span>
-      </button>
+      </Link>
       {/* {validKeys.length > 0 && (
         <div className="p-4">
           <ul className="space-y-2">

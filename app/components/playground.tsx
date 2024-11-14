@@ -1,10 +1,17 @@
 "use client";
 
-import { Fragment, type ReactNode, useCallback, useState } from "react";
+import {
+  CSSProperties,
+  Fragment,
+  type ReactNode,
+  useCallback,
+  useState,
+} from "react";
 import { Filter } from "./filter";
 import { Editor, Node, parseTree } from "./editor";
 import { EditorState } from "@codemirror/state";
 import { QuestionMark } from "./icons";
+import { usePathname, useRouter } from "next/navigation";
 
 const range = (
   to: number,
@@ -82,7 +89,8 @@ function findLinks(filters: Pick<Node, "properties">[]): [number, number][] {
   return links;
 }
 
-export function Playground() {
+export function Playground({ children }: { children?: ReactNode }) {
+  const pathname = usePathname();
   const [filterView, setFilterView] = useState<EditorState | null>(null);
   const filters = parseTree(filterView).children.map((child) => {
     return {
@@ -113,8 +121,18 @@ export function Playground() {
     };
   });
 
+  const open = pathname !== "/";
   return (
-    <div className="h-screen w-full grid grid-cols-[380px_1fr_420px] divide-x divide-gray4">
+    <div
+      className="h-screen w-full grid grid-cols-[var(--filter-width)_1fr_var(--aside-width)] divide-x divide-gray4"
+      style={
+        {
+          "--filter-width": open ? "45ch" : "380px",
+          "--aside-width": open ? "32px" : "420px",
+          transition: "grid-template-columns 0.2s ease-in-out",
+        } as CSSProperties
+      }
+    >
       <aside className="flex flex-col divide-y divide-gray4 bg-gray2">
         <header className="p-4 flex justify-between items-center">
           <h1 className="font-medium">SVG Filter Playground</h1>
@@ -140,71 +158,75 @@ export function Playground() {
             </svg>
           </a>
         </header>
-        <ul className="p-4 flex flex-col gap-10 relative h-full">
-          <div className="absolute inset-0 p-4 pointer-events-none">
-            <svg width="100%" height="100%">
-              <g className="text-green9">
-                {linksWithCoordinates.map((link) => {
-                  if (link.x0 === link.x1) {
+        {open ? (
+          <div className="h-full">{children}</div>
+        ) : (
+          <ul className="p-4 flex flex-col gap-10 relative h-full">
+            <div className="absolute inset-0 p-4 pointer-events-none">
+              <svg width="100%" height="100%">
+                <g className="text-green9">
+                  {linksWithCoordinates.map((link) => {
+                    if (link.x0 === link.x1) {
+                      return (
+                        <path
+                          key={`${link.x0}-${link.y0}-${link.y1}`}
+                          d={`M ${link.x0} ${link.y0} V ${link.y1}`}
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          fill="none"
+                        />
+                      );
+                    }
                     return (
                       <path
                         key={`${link.x0}-${link.y0}-${link.y1}`}
-                        d={`M ${link.x0} ${link.y0} V ${link.y1}`}
+                        d={`M ${link.x0} ${link.y0} V ${link.y1 - 26} a 6 6 0 0 0 6 6 H ${link.x1 - 6} a 6 6 0 0 1 6 6 V ${link.y1}`}
                         stroke="currentColor"
+                        strokeLinejoin="round"
                         strokeWidth="2"
                         fill="none"
                       />
                     );
-                  }
-                  return (
-                    <path
-                      key={`${link.x0}-${link.y0}-${link.y1}`}
-                      d={`M ${link.x0} ${link.y0} V ${link.y1 - 26} a 6 6 0 0 0 6 6 H ${link.x1 - 6} a 6 6 0 0 1 6 6 V ${link.y1}`}
-                      stroke="currentColor"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      fill="none"
-                    />
-                  );
-                })}
-              </g>
-            </svg>
-          </div>
-          <li className="flex gap-2 text-sm font-medium relative">
-            <button className="bg-gray1 border h-10 pl-4 pr-2.5 gap-2 flex items-center rounded-xl justify-between w-full shadow-sm">
-              <span>SourceGraphic</span>
-              <span className="text-gray11">
-                <QuestionMark />
-              </span>
-            </button>
-            <button className="bg-gray1 border h-10 pl-4 pr-2.5 gap-2 flex items-center rounded-xl w-full justify-between shadow-sm">
-              <span>SourceAlpha</span>
-              <span className="text-gray11">
-                <QuestionMark />
-              </span>
-            </button>
-          </li>
-          {filters.map((filter) => {
-            return <Filter key={filter.type} filter={filter} />;
-          })}
-          <div className="absolute inset-0 p-4 pointer-events-none">
-            <svg width="100%" height="100%">
-              <g className="text-green9">
-                {linksWithCoordinates.map((link) => {
-                  return (
-                    <g
-                      key={`${link.x0}-${link.y0}-${link.x1}-${link.y1}`}
-                      fill="currentColor"
-                    >
-                      <circle cx={link.x0} cy={link.y0} r="3" />
-                      <circle cx={link.x1} cy={link.y1} r="3" />
-                    </g>
-                  );
-                })}
-              </g>
-            </svg>
-          </div>
-        </ul>
+                  })}
+                </g>
+              </svg>
+            </div>
+            <li className="flex gap-2 text-sm font-medium relative">
+              <button className="bg-gray1 border h-10 pl-4 pr-2.5 gap-2 flex items-center rounded-xl justify-between w-full shadow-sm">
+                <span>SourceGraphic</span>
+                <span className="text-gray11">
+                  <QuestionMark />
+                </span>
+              </button>
+              <button className="bg-gray1 border h-10 pl-4 pr-2.5 gap-2 flex items-center rounded-xl w-full justify-between shadow-sm">
+                <span>SourceAlpha</span>
+                <span className="text-gray11">
+                  <QuestionMark />
+                </span>
+              </button>
+            </li>
+            {filters.map((filter) => {
+              return <Filter key={filter.type} filter={filter} />;
+            })}
+            <div className="absolute inset-0 p-4 pointer-events-none">
+              <svg width="100%" height="100%">
+                <g className="text-green9">
+                  {linksWithCoordinates.map((link) => {
+                    return (
+                      <g
+                        key={`${link.x0}-${link.y0}-${link.x1}-${link.y1}`}
+                        fill="currentColor"
+                      >
+                        <circle cx={link.x0} cy={link.y0} r="3" />
+                        <circle cx={link.x1} cy={link.y1} r="3" />
+                      </g>
+                    );
+                  })}
+                </g>
+              </svg>
+            </div>
+          </ul>
+        )}
       </aside>
       <main
         className="w-full flex items-center justify-center"
@@ -230,7 +252,7 @@ export function Playground() {
           </svg>
         </SvgWrapper>
       </main>
-      <aside className="flex flex-col divide-y divide-gray4 text-sm">
+      <aside className="flex flex-col divide-y divide-gray4 text-sm overflow-hidden w-[420px]">
         <header className="grid grid-cols-2 divide-x divide-gray4">
           <div className="flex justify-between p-4">
             <p className="text-gray11 font-medium">Width</p>

@@ -2,7 +2,8 @@ import { unified } from "unified";
 import parse from "rehype-parse";
 import { find } from "unist-util-find";
 import type { Root } from "hast";
-import { Playground } from "./components/playground";
+import { Playground } from "../components/playground";
+import { ReactNode } from "react";
 
 const defaultText = `<svg viewBox="0 0 100 100" width="100%">
   <g
@@ -38,11 +39,11 @@ const defaultText = `<svg viewBox="0 0 100 100" width="100%">
   </defs>
 </svg>`;
 
-export default function Home() {
+export default function Home({ children }: { children?: ReactNode }) {
   const tree = unified().use(parse).parse(defaultText);
   const svg = find<Root>(tree, { tagName: "svg" });
   if (!svg) {
     throw new Error("No SVG element found");
   }
-  return <Playground />;
+  return <Playground>{children}</Playground>;
 }
